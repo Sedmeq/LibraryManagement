@@ -13,8 +13,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-// @ControllerAdvice ilə bütün controller-lər üçün MƏRKƏZLƏŞDİRİLMİŞ exception handling.
-// Hər error eyni formatda (ErrorResponseDto) və düzgün HTTP status kodu ilə qayıdır.
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -44,7 +42,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
-    // @Valid uğursuz olanda (input validation xətaları) - 400 Bad Request
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleValidation(MethodArgumentNotValidException ex,
                                                                HttpServletRequest request) {
@@ -64,7 +61,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    // Nəzərdə tutulmamış bütün digər xətalar - 500 Internal Server Error
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handleGeneric(Exception ex, HttpServletRequest request) {
         ErrorResponseDto body = ErrorResponseDto.builder()

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-// Mərkəzləşdirilmiş exception handler-in qaytardığı vahid error formatı
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,5 +18,5 @@ public class ErrorResponseDto {
     private String error;
     private String message;
     private String path;
-    private Map<String, String> validationErrors; // field -> mesaj (400 zamanı)
+    private Map<String, String> validationErrors;
 }

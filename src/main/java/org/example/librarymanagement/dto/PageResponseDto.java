@@ -8,9 +8,7 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-// Pagination + sorting cavabı üçün ümumi (generic) wrapper.
-// Controller-lər Page<X> əvəzinə bunu qaytarır ki, cavab strukturu
-// bütün endpoint-lərdə eyni olsun.
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

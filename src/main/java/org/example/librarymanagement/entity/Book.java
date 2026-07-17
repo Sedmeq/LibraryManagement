@@ -28,9 +28,6 @@ public class Book {
     @Column(name = "publication_year")
     private Integer publicationYear;
 
-    // Owning side of the relationship -> FK lives in "books" table.
-    // FetchType.LAZY is important: prevents accidentally loading the whole
-    // Author (and its book list) every time a Book is fetched.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     private Author author;

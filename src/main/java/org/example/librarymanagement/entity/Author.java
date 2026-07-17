@@ -27,10 +27,6 @@ public class Author {
     @Column(name = "biography", length = 2000)
     private String biography;
 
-    // Bidirectional OneToMany. mappedBy -> "author" field inside Book.
-    // Kept OUT of JSON serialization on purpose (no @JsonManagedReference here) -
-    // we never serialize the entity directly, only through DTOs, which avoids
-    // the classic Author -> Book -> Author infinite recursion / StackOverflowError.
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Book> books = new ArrayList<>();
