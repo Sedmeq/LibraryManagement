@@ -2,12 +2,16 @@ package org.example.librarymanagement.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.librarymanagement.dto.ErrorResponseDto;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -16,35 +20,89 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // -------------------------------------------------------------------------
+    // Domain exception-ları
+    // -------------------------------------------------------------------------
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handleNotFound(ResourceNotFoundException ex,
-                                                             HttpServletRequest request) {
-        ErrorResponseDto body = ErrorResponseDto.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                .message(ex.getMessage())
-                .path(request.getRequestURI())
-                .build();
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+                                                           HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponseDto> handleDuplicate(DuplicateResourceException ex,
-                                                              HttpServletRequest request) {
-        ErrorResponseDto body = ErrorResponseDto.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-                .message(ex.getMessage())
-                .path(request.getRequestURI())
-                .build();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+                                                            HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
+
+    // -------------------------------------------------------------------------
+    // Pagination / Sorting exception-ları
+    // -------------------------------------------------------------------------
+
+    /**
+     * Xüsusi InvalidPaginationException — controller səviyyəsindən atılır.
+     * Yanlış sort sahəsi, mənfi page/size dəyərləri üçün.
+     */
+    @ExceptionHandler(InvalidPaginationException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidPagination(InvalidPaginationException ex,
+                                                                    HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    /**
+     * Məs: page=abc, size=xyz kimi string göndərildikdə atılır.
+     * GET /api/v1/authors?page=abc
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponseDto> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                               HttpServletRequest request) {
+        String paramName = ex.getName();
+        String givenValue = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String expectedType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "bilinmir";
+        String msg = String.format(
+                "'%s' parametri üçün '%s' dəyəri yanlışdır. Gözlənilən tip: %s.",
+                paramName, givenValue, expectedType);
+        return build(HttpStatus.BAD_REQUEST, msg, request);
+    }
+
+    /**
+     * Məcburi query parametri çatışmadıqda atılır.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDto> handleMissingParam(MissingServletRequestParameterException ex,
+                                                               HttpServletRequest request) {
+        String msg = String.format("Məcburi parametr çatışmır: '%s' (%s)", ex.getParameterName(), ex.getParameterType());
+        return build(HttpStatus.BAD_REQUEST, msg, request);
+    }
+
+    /**
+     * Spring Data-nın daxilindən atılan ümumi istifadə xətası.
+     * Məs: sort sahəsi mövcud, lakin düzgün navigasiya yolu deyil.
+     */
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<ErrorResponseDto> handleDataAccessUsage(InvalidDataAccessApiUsageException ex,
+                                                                  HttpServletRequest request) {
+        String msg = "Yanlış sorğu parametri. Sort sahəsini yoxlayın.";
+        return build(HttpStatus.BAD_REQUEST, msg, request);
+    }
+
+    /**
+     * Request body-si oxuna bilmədikdə (yanlış JSON formatı, type uyğunsuzluğu).
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponseDto> handleNotReadable(HttpMessageNotReadableException ex,
+                                                              HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Request body oxuna bilmir. JSON formatını yoxlayın.", request);
+    }
+
+    // -------------------------------------------------------------------------
+    // Validasiya
+    // -------------------------------------------------------------------------
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleValidation(MethodArgumentNotValidException ex,
-                                                               HttpServletRequest request) {
+                                                             HttpServletRequest request) {
         Map<String, String> fieldErrors = new HashMap<>();
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.put(fe.getField(), fe.getDefaultMessage());
@@ -61,15 +119,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    // -------------------------------------------------------------------------
+    // Ümumi fallback
+    // -------------------------------------------------------------------------
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handleGeneric(Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Gözlənilməz xəta baş verdi. Ətraflı məlumat üçün administratorla əlaqə saxlayın.", request);
+    }
+
+    // -------------------------------------------------------------------------
+    // Köməkçi metod
+    // -------------------------------------------------------------------------
+
+    private ResponseEntity<ErrorResponseDto> build(HttpStatus status, String message,
+                                                   HttpServletRequest request) {
         ErrorResponseDto body = ErrorResponseDto.builder()
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                .message(ex.getMessage())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
                 .path(request.getRequestURI())
                 .build();
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+        return ResponseEntity.status(status).body(body);
     }
 }

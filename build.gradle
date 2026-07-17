@@ -23,10 +23,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // MySQL driver
     runtimeOnly 'com.mysql:mysql-connector-j'
 
-    // H2 - yalnız testlər üçün in-memory DB
     testRuntimeOnly 'com.h2database:h2'
 
     compileOnly 'org.projectlombok:lombok'
@@ -36,11 +34,12 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
-    // Swagger / OpenAPI sənədləşdirmə
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 
-    // Test (JUnit 5, Mockito, MockMvc, AssertJ)
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    testImplementation 'org.mockito:mockito-core:5.18.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.18.0'
 
 }
 

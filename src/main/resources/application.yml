@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: LibraryManagement
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/testdb
+    username: root
+    password: 12345678
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    web:
+      pageable:
+        # Bir sorğuda maksimum qaytarıla bilən element sayı (DoS qoruması)
+        max-page-size: 100
+        # Default element sayı (controller-dəki @PageableDefault ilə override edilir)
+        default-page-size: 10
+        # page parametri 0-dan başlayır
+        one-indexed-parameters: false
