@@ -19,9 +19,12 @@ spring:
   data:
     web:
       pageable:
-        # Bir sorğuda maksimum qaytarıla bilən element sayı (DoS qoruması)
         max-page-size: 100
-        # Default element sayı (controller-dəki @PageableDefault ilə override edilir)
         default-page-size: 10
-        # page parametri 0-dan başlayır
         one-indexed-parameters: false
+
+
+#jwt config
+jwt:
+  secret: ${JWT_SECRET:dNrao7M7UiqcgkkxLK1B6eTWypjfxOx5ixAkZPTrH83R0bvGKjtfmZbjrGlJ9D7z}
+  expiration: ${JWT_EXPIRATION:3600000}
