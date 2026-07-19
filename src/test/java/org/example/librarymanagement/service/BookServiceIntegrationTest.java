@@ -1,10 +1,10 @@
 package org.example.librarymanagement.service;
 
 import org.example.librarymanagement.dto.AuthorRequestDto;
-import org.example.librarymanagement.dto.AuthorResponseDto;
 import org.example.librarymanagement.dto.BookRequestDto;
 import org.example.librarymanagement.dto.BookResponseDto;
 import org.example.librarymanagement.dto.PageResponseDto;
+import org.example.librarymanagement.exception.DuplicateResourceException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -70,6 +70,17 @@ class BookServiceIntegrationTest {
                 .hasMessageContaining("Author");
     }
 
+    @Test
+    @DisplayName("create: mövcud ISBN ilə DuplicateResourceException atılır")
+    void create_duplicateIsbn() {
+        bookService.create(new BookRequestDto("Kitab A", "9999999999", 2000, authorId));
+
+        assertThatThrownBy(() ->
+                bookService.create(new BookRequestDto("Kitab B", "9999999999", 2001, authorId))
+        ).isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("9999999999");
+    }
+
     // -------------------------------------------------------------------------
     // getAll
     // -------------------------------------------------------------------------
@@ -86,7 +97,7 @@ class BookServiceIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
-    // update – eyni author
+    // update
     // -------------------------------------------------------------------------
 
     @Test
@@ -106,10 +117,6 @@ class BookServiceIntegrationTest {
         assertThat(updated.getAuthorId()).isEqualTo(authorId);
     }
 
-    // -------------------------------------------------------------------------
-    // update – fərqli author
-    // -------------------------------------------------------------------------
-
     @Test
     @DisplayName("update: fərqli author ilə kitabın autoru dəyişdirilir")
     void update_differentAuthor() {
@@ -123,6 +130,31 @@ class BookServiceIntegrationTest {
 
         assertThat(updated.getAuthorId()).isEqualTo(author2Id);
         assertThat(updated.getAuthorName()).isEqualTo("Sabir");
+    }
+
+    @Test
+    @DisplayName("update: mövcud ISBN ilə DuplicateResourceException atılır")
+    void update_duplicateIsbn() {
+        bookService.create(new BookRequestDto("Kitab A", "1111111112", 2000, authorId));
+        BookResponseDto bookB = bookService.create(new BookRequestDto("Kitab B", "2222222223", 2001, authorId));
+
+        assertThatThrownBy(() ->
+                bookService.update(bookB.getId(),
+                        new BookRequestDto("Kitab B yenilənmiş", "1111111112", 2001, authorId))
+        ).isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("1111111112");
+    }
+
+    @Test
+    @DisplayName("update: öz ISBN-ni saxladıqda DuplicateResourceException atılmır")
+    void update_sameIsbn_noDuplicateException() {
+        BookResponseDto created = bookService.create(
+                new BookRequestDto("Kitab", "3333333334", 2000, authorId));
+
+        assertThatNoException().isThrownBy(() ->
+                bookService.update(created.getId(),
+                        new BookRequestDto("Yenilənmiş Başlıq", "3333333334", 2005, authorId))
+        );
     }
 
     @Test

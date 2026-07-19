@@ -5,6 +5,7 @@ import org.example.librarymanagement.dto.BookResponseDto;
 import org.example.librarymanagement.dto.PageResponseDto;
 import org.example.librarymanagement.entity.Author;
 import org.example.librarymanagement.entity.Book;
+import org.example.librarymanagement.exception.DuplicateResourceException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.AuthorRepository;
 import org.example.librarymanagement.repository.BookRepository;
@@ -74,6 +75,7 @@ class BookServiceImplTest {
     @DisplayName("create: mövcud author ilə kitab yaradılır")
     void create_success() {
         when(authorRepository.findById(1L)).thenReturn(Optional.of(author));
+        when(bookRepository.findByIsbn("978-9952-20-001-1")).thenReturn(Optional.empty());
         when(bookRepository.save(any(Book.class))).thenReturn(book);
 
         BookResponseDto result = bookService.create(requestDto);
@@ -85,6 +87,19 @@ class BookServiceImplTest {
         assertThat(result.getAuthorId()).isEqualTo(1L);
         assertThat(result.getAuthorName()).isEqualTo("Əliağa Vahid");
         verify(bookRepository).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("create: mövcud ISBN ilə DuplicateResourceException atılır")
+    void create_duplicateIsbn_throwsException() {
+        when(authorRepository.findById(1L)).thenReturn(Optional.of(author));
+        when(bookRepository.findByIsbn("978-9952-20-001-1")).thenReturn(Optional.of(book));
+
+        assertThatThrownBy(() -> bookService.create(requestDto))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("978-9952-20-001-1");
+
+        verify(bookRepository, never()).save(any());
     }
 
     @Test
@@ -165,17 +180,45 @@ class BookServiceImplTest {
     @Test
     @DisplayName("update: eyni author ilə kitab yenilənir")
     void update_sameAuthor_success() {
-        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-0-00-000001-1", 2000, 1L);
+        // ISBN dəyişmir → findByIsbn çağrılmamalıdır
+        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-9952-20-001-1", 2000, 1L);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
         when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BookResponseDto result = bookService.update(10L, updateDto);
 
         assertThat(result.getTitle()).isEqualTo("Yeni Başlıq");
-        assertThat(result.getIsbn()).isEqualTo("978-0-00-000001-1");
         assertThat(result.getPublicationYear()).isEqualTo(2000);
-        // Eyni author – authorRepository.findById çağrılmamalıdır
+        verify(bookRepository, never()).findByIsbn(any());
         verify(authorRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("update: yeni unikal ISBN ilə kitab yenilənir")
+    void update_newUniqueIsbn_success() {
+        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-0-00-000001-1", 2000, 1L);
+        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIsbn("978-0-00-000001-1")).thenReturn(Optional.empty());
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookResponseDto result = bookService.update(10L, updateDto);
+
+        assertThat(result.getIsbn()).isEqualTo("978-0-00-000001-1");
+    }
+
+    @Test
+    @DisplayName("update: mövcud ISBN ilə DuplicateResourceException atılır")
+    void update_duplicateIsbn_throwsException() {
+        Book otherBook = Book.builder().id(99L).isbn("978-0-00-000001-1").build();
+        BookRequestDto updateDto = new BookRequestDto("X", "978-0-00-000001-1", 2000, 1L);
+        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIsbn("978-0-00-000001-1")).thenReturn(Optional.of(otherBook));
+
+        assertThatThrownBy(() -> bookService.update(10L, updateDto))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("978-0-00-000001-1");
+
+        verify(bookRepository, never()).save(any());
     }
 
     @Test

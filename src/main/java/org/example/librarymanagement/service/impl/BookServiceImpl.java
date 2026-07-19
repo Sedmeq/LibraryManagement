@@ -7,6 +7,7 @@ import org.example.librarymanagement.dto.BookResponseDto;
 import org.example.librarymanagement.dto.PageResponseDto;
 import org.example.librarymanagement.entity.Author;
 import org.example.librarymanagement.entity.Book;
+import org.example.librarymanagement.exception.DuplicateResourceException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.AuthorRepository;
 import org.example.librarymanagement.repository.BookRepository;
@@ -28,6 +29,10 @@ public class BookServiceImpl implements BookService {
     public BookResponseDto create(BookRequestDto dto) {
         Author author = authorRepository.findById(dto.getAuthorId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Author", dto.getAuthorId()));
+
+        bookRepository.findByIsbn(dto.getIsbn()).ifPresent(existing -> {
+            throw new DuplicateResourceException("Bu ISBN artıq istifadə olunur: " + dto.getIsbn());
+        });
 
         Book book = Book.builder()
                 .title(dto.getTitle())
@@ -55,6 +60,13 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponseDto update(Long id, BookRequestDto dto) {
         Book book = findEntity(id);
+
+        // ISBN dəyişirsə, yeni ISBN başqa kitabda istifadə olunmadığını yoxla
+        if (!book.getIsbn().equals(dto.getIsbn())) {
+            bookRepository.findByIsbn(dto.getIsbn()).ifPresent(existing -> {
+                throw new DuplicateResourceException("Bu ISBN artıq istifadə olunur: " + dto.getIsbn());
+            });
+        }
 
         if (!book.getAuthor().getId().equals(dto.getAuthorId())) {
             Author newAuthor = authorRepository.findById(dto.getAuthorId())
