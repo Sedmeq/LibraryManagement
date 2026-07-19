@@ -6,6 +6,8 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -34,6 +36,32 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleDuplicate(DuplicateResourceException ex,
                                                             HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    // -------------------------------------------------------------------------
+    // Autentifikasiya (401) / İcazə (403) exception-ları
+    // -------------------------------------------------------------------------
+
+    /**
+     * 401 UNAUTHORIZED — login zamanı yanlış username/password (BadCredentialsException və s.),
+     * və ya controller daxilində atılan digər AuthenticationException-lar.
+     * Diqqət: JWT filter səviyyəsindəki 401-lər (token yoxdur/vaxtı bitib) buraya deyil,
+     * birbaşa CustomAuthenticationEntryPoint-ə gedir, çünki filter DispatcherServlet-dən əvvəl işləyir.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponseDto> handleAuthentication(AuthenticationException ex,
+                                                                 HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, "İstifadəçi adı və ya şifrə yanlışdır.", request);
+    }
+
+    /**
+     * 403 FORBIDDEN — istifadəçi doğrulanıb, amma lazımi rola malik deyil.
+     * Adətən CustomAccessDeniedHandler bunu tutur; bu handler yalnız ehtiyat (fallback) rolunu oynayır.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDto> handleAccessDenied(AccessDeniedException ex,
+                                                               HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "Bu əməliyyat üçün icazəniz yoxdur.", request);
     }
 
     // -------------------------------------------------------------------------
