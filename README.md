@@ -13,6 +13,7 @@ A RESTful CRUD API for managing books, authors, and library members — built wi
 | Persistence | Spring Data JPA + Hibernate |
 | Database | MySQL 8 (prod), H2 in-memory (test) |
 | Validation | Jakarta Bean Validation |
+| Security | Spring Security 6 + JWT (JJWT 0.12.x), BCrypt |
 | API Docs | SpringDoc OpenAPI (Swagger UI) |
 | Build | Gradle |
 
@@ -70,6 +71,70 @@ OpenAPI JSON spec:
 ```
 http://localhost:8080/v3/api-docs
 ```
+
+---
+
+## Authentication (JWT)
+
+The API uses stateless JWT authentication. Register or log in to receive an `accessToken`,
+then send it as `Authorization: Bearer <token>` on every subsequent request.
+
+### Auth — `/api/v1/auth` (public)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/auth/register` | Register a new account (always created with role `USER`) |
+| POST | `/api/v1/auth/login` | Log in, returns a JWT |
+
+**Register / Login request body:**
+```json
+{ "username": "john", "email": "john@example.com", "password": "secret123" }
+```
+
+**Response:**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600,
+  "username": "john",
+  "role": "USER"
+}
+```
+
+A default admin account is seeded automatically on first startup (see `config/DataSeeder.java`):
+
+```
+username: admin
+password: Admin123!
+```
+
+### Role-based access
+
+| Endpoint | USER | ADMIN |
+|---|---|---|
+| `GET /api/v1/{books,authors,members}/**` | ✅ | ✅ |
+| `POST/PUT/DELETE /api/v1/{books,authors,members}/**` | ❌ (403) | ✅ |
+| `GET /api/v1/users/me` | ✅ | ✅ |
+| `GET /api/v1/admin/**` | ❌ (403) | ✅ |
+
+### Auth error responses
+
+| Situation | Status | Meaning |
+|---|---|---|
+| No token / invalid token / expired token | **401 Unauthorized** | Caller could not be authenticated |
+| Valid token but wrong role | **403 Forbidden** | Caller is authenticated but not allowed |
+| Wrong username/password on `/auth/login` | **401 Unauthorized** | Credentials invalid |
+
+Both cases return the same `ErrorResponseDto` JSON shape used across the API (see *Error Responses* below).
+
+### Token expiration
+
+Tokens are signed HS256 JWTs with an `exp` claim controlled by `jwt.expiration` (ms) in
+`application.yml` (default: 1 hour / `3600000`). Expired tokens are rejected by
+`JwtAuthenticationFilter` and result in a 401 with the message `"Token vaxtı bitib. Yenidən daxil olun."`
+Configure both `jwt.secret` and `jwt.expiration` via environment variables (`JWT_SECRET`, `JWT_EXPIRATION`)
+in production instead of the checked-in defaults.
 
 ---
 
@@ -200,12 +265,13 @@ build/reports/tests/test/index.html
 ```
 src/
 ├── main/java/.../librarymanagement/
-│   ├── config/         # OpenAPI configuration
-│   ├── controller/     # REST controllers
+│   ├── config/         # OpenAPI + Security configuration, admin data seeder
+│   ├── controller/     # REST controllers (incl. AuthController, AdminController)
 │   ├── dto/            # Request / Response DTOs
-│   ├── entity/         # JPA entities
+│   ├── entity/         # JPA entities (incl. User, Role)
 │   ├── exception/      # Custom exceptions + GlobalExceptionHandler
 │   ├── repository/     # Spring Data JPA repositories
+│   ├── security/       # JWT filter/service, UserDetailsService, 401/403 handlers
 │   └── service/        # Service interfaces + implementations
 └── test/
     ├── java/.../service/   # Unit tests (Mockito) + Integration tests (H2)
