@@ -3,9 +3,9 @@ spring:
     name: LibraryManagement
 
   datasource:
-    url: jdbc:mysql://localhost:3306/testdb
-    username: root
-    password: 12345678
+    url: ${DB_URL:jdbc:mysql://localhost:3306/testdb}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -23,8 +23,6 @@ spring:
         default-page-size: 10
         one-indexed-parameters: false
 
-
-#jwt config
 jwt:
-  secret: ${JWT_SECRET:dNrao7M7UiqcgkkxLK1B6eTWypjfxOx5ixAkZPTrH83R0bvGKjtfmZbjrGlJ9D7z}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}

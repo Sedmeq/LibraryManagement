@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * USER və ADMIN rollarının hər ikisinin əlçatan olduğu endpoint nümunəsi.
- * Rol fərqi {@code AdminController} ilə müqayisədə görünür (yalnız ADMIN).
- */
+
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "Users", description = "Cari istifadəçinin öz məlumatları")

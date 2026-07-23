@@ -22,9 +22,6 @@ public class OpenApiConfig {
                         .description("Book, Author, Member üzərində layered architecture ilə CRUD REST API")
                         .version("v1.0.0")
                         .contact(new Contact().name("Library Management Team")))
-                // Swagger UI-da "Authorize" düyməsini aktivləşdirir: /api/v1/auth/login-dan
-                // aldığın JWT-ni "Bearer <token>" formatında bura yazmaq kifayətdir,
-                // bundan sonra bütün qorunan endpoint sorğularına avtomatik əlavə olunur.
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME_NAME, new SecurityScheme()
                                 .name(BEARER_SCHEME_NAME)

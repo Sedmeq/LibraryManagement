@@ -13,11 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Yalnız ADMIN roluna açıq endpoint-lər.
- * Rol həm SecurityConfig-də (request matcher), həm də burada method-level
- * {@code @PreAuthorize} ilə iki qat təsdiqlənir.
- */
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor

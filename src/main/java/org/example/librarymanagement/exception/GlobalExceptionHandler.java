@@ -2,6 +2,7 @@ package org.example.librarymanagement.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.librarymanagement.dto.ErrorResponseDto;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleDuplicate(DuplicateResourceException ex,
                                                             HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    /**
+     * Catches DB-level UNIQUE constraint violations that bypass service-layer checks
+     * (e.g. a race condition inserts the same ISBN twice).
+     * Returns 409 Conflict instead of leaking a 500 with raw SQL details.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDto> handleDataIntegrity(DataIntegrityViolationException ex,
+                                                                HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT,
+                "Unikal dəyər pozulması: eyni dəyərə malik qeyd artıq mövcuddur.", request);
     }
 
     // -------------------------------------------------------------------------

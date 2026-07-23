@@ -28,7 +28,6 @@ import java.util.Set;
 @Tag(name = "Members", description = "Member CRUD əməliyyatları")
 public class MemberController {
 
-    /** Member entity-sinin sıralana bilən sahələri */
     private static final Set<String> ALLOWED_SORT_FIELDS =
             Set.of("id", "fullName", "email", "membershipDate");
 

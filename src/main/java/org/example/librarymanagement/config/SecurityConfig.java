@@ -2,6 +2,8 @@ package org.example.librarymanagement.config;
 
 import lombok.RequiredArgsConstructor;
 
+import org.example.librarymanagement.security.CustomAccessDeniedHandler;
+import org.example.librarymanagement.security.CustomAuthenticationEntryPoint;
 import org.example.librarymanagement.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +27,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final
+    CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
     private static final String[] PUBLIC_ENDPOINTS = {

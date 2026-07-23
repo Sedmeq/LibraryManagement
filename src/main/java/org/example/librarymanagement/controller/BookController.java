@@ -28,7 +28,6 @@ import java.util.Set;
 @Tag(name = "Books", description = "Book CRUD əməliyyatları")
 public class BookController {
 
-    /** Book entity-sinin sıralana bilən sahələri */
     private static final Set<String> ALLOWED_SORT_FIELDS =
             Set.of("id", "title", "isbn", "publicationYear");
 

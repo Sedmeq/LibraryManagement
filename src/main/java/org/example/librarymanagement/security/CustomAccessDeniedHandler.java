@@ -13,10 +13,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-/**
- * 403 FORBIDDEN — istifadəçi doğrulanıb (etibarlı token var),
- * lakin bu əməliyyat üçün lazımi rola (ADMIN və s.) malik deyil.
- */
+
 @Component
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 

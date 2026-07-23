@@ -1,6 +1,6 @@
 # Library Management API
 
-A RESTful CRUD API for managing books, authors, and library members — built with Spring Boot, Spring Data JPA, and MySQL.
+A RESTful CRUD API for managing books, authors, and library members — built with Spring Boot, Spring Security 6, JWT, and MySQL.
 
 ---
 
@@ -16,6 +16,7 @@ A RESTful CRUD API for managing books, authors, and library members — built wi
 | Security | Spring Security 6 + JWT (JJWT 0.12.x), BCrypt |
 | API Docs | SpringDoc OpenAPI (Swagger UI) |
 | Build | Gradle |
+| Testing | JUnit 5, Mockito, MockMvc, H2 |
 
 ---
 
@@ -27,6 +28,46 @@ A RESTful CRUD API for managing books, authors, and library members — built wi
 
 ---
 
+## Environment Variables
+
+The application **will not start** unless these environment variables are set.
+
+| Variable | Required | Description |
+|---|---|---|
+| `JWT_SECRET` | **Yes** | Base64-encoded HMAC-SHA key (minimum 32 bytes). No default — startup fails if absent or blank. |
+| `DB_USERNAME` | **Yes** | MySQL username |
+| `DB_PASSWORD` | **Yes** | MySQL password |
+| `DB_URL` | No | JDBC URL (default: `jdbc:mysql://localhost:3306/testdb`) |
+| `JWT_EXPIRATION` | No | Token lifetime in milliseconds (default: `3600000` = 1 hour) |
+
+### Generating a JWT secret
+
+```bash
+# Linux / macOS
+openssl rand -base64 48
+
+# Windows PowerShell
+[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+### Setting variables (Linux / macOS)
+
+```bash
+export JWT_SECRET="<output from above>"
+export DB_USERNAME="root"
+export DB_PASSWORD="your_password"
+```
+
+### Setting variables (Windows PowerShell)
+
+```powershell
+$env:JWT_SECRET  = "<output from above>"
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "your_password"
+```
+
+---
+
 ## Getting Started
 
 ### 1. Create the database
@@ -35,17 +76,9 @@ A RESTful CRUD API for managing books, authors, and library members — built wi
 CREATE DATABASE testdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 2. Configure credentials
+### 2. Set environment variables
 
-Edit `src/main/resources/application.yml`:
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/testdb
-    username: root
-    password: your_password
-```
+See the [Environment Variables](#environment-variables) section above.
 
 ### 3. Run the application
 
@@ -60,7 +93,7 @@ Schema is created/updated automatically via `ddl-auto: update`.
 
 ## API Documentation
 
-Swagger UI is available at:
+Swagger UI:
 
 ```
 http://localhost:8080/swagger-ui/index.html
@@ -79,16 +112,20 @@ http://localhost:8080/v3/api-docs
 The API uses stateless JWT authentication. Register or log in to receive an `accessToken`,
 then send it as `Authorization: Bearer <token>` on every subsequent request.
 
-### Auth — `/api/v1/auth` (public)
+### Auth endpoints — `/api/v1/auth` (public)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/auth/register` | Register a new account (always created with role `USER`) |
+| POST | `/api/v1/auth/register` | Register a new account (role: `USER`) |
 | POST | `/api/v1/auth/login` | Log in, returns a JWT |
 
-**Register / Login request body:**
+**Register request body:**
 ```json
-{ "username": "john", "email": "john@example.com", "password": "secret123" }
+{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "secret123"
+}
 ```
 
 **Response:**
@@ -102,7 +139,7 @@ then send it as `Authorization: Bearer <token>` on every subsequent request.
 }
 ```
 
-A default admin account is seeded automatically on first startup (see `config/DataSeeder.java`):
+A default admin account is seeded automatically on first startup:
 
 ```
 username: admin
@@ -114,27 +151,18 @@ password: Admin123!
 | Endpoint | USER | ADMIN |
 |---|---|---|
 | `GET /api/v1/{books,authors,members}/**` | ✅ | ✅ |
-| `POST/PUT/DELETE /api/v1/{books,authors,members}/**` | ❌ (403) | ✅ |
+| `POST/PUT/DELETE /api/v1/{books,authors,members}/**` | ❌ 403 | ✅ |
 | `GET /api/v1/users/me` | ✅ | ✅ |
-| `GET /api/v1/admin/**` | ❌ (403) | ✅ |
+| `GET /api/v1/admin/**` | ❌ 403 | ✅ |
 
 ### Auth error responses
 
-| Situation | Status | Meaning |
-|---|---|---|
-| No token / invalid token / expired token | **401 Unauthorized** | Caller could not be authenticated |
-| Valid token but wrong role | **403 Forbidden** | Caller is authenticated but not allowed |
-| Wrong username/password on `/auth/login` | **401 Unauthorized** | Credentials invalid |
-
-Both cases return the same `ErrorResponseDto` JSON shape used across the API (see *Error Responses* below).
-
-### Token expiration
-
-Tokens are signed HS256 JWTs with an `exp` claim controlled by `jwt.expiration` (ms) in
-`application.yml` (default: 1 hour / `3600000`). Expired tokens are rejected by
-`JwtAuthenticationFilter` and result in a 401 with the message `"Token vaxtı bitib. Yenidən daxil olun."`
-Configure both `jwt.secret` and `jwt.expiration` via environment variables (`JWT_SECRET`, `JWT_EXPIRATION`)
-in production instead of the checked-in defaults.
+| Situation | Status |
+|---|---|
+| No token / invalid token / expired token | 401 Unauthorized |
+| Valid token but insufficient role | 403 Forbidden |
+| Wrong username or password on login | 401 Unauthorized |
+| Duplicate username / email / ISBN | 409 Conflict |
 
 ---
 
@@ -142,39 +170,39 @@ in production instead of the checked-in defaults.
 
 ### Authors — `/api/v1/authors`
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/authors` | Create author |
-| GET | `/api/v1/authors/{id}` | Get author by id |
-| GET | `/api/v1/authors` | List authors (paginated) |
-| PUT | `/api/v1/authors/{id}` | Update author |
-| DELETE | `/api/v1/authors/{id}` | Delete author |
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/v1/authors` | ADMIN |
+| GET | `/api/v1/authors/{id}` | USER, ADMIN |
+| GET | `/api/v1/authors` | USER, ADMIN |
+| PUT | `/api/v1/authors/{id}` | ADMIN |
+| DELETE | `/api/v1/authors/{id}` | ADMIN |
 
 ### Books — `/api/v1/books`
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/books` | Create book |
-| GET | `/api/v1/books/{id}` | Get book by id |
-| GET | `/api/v1/books` | List books (paginated) |
-| PUT | `/api/v1/books/{id}` | Update book |
-| DELETE | `/api/v1/books/{id}` | Delete book |
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/v1/books` | ADMIN |
+| GET | `/api/v1/books/{id}` | USER, ADMIN |
+| GET | `/api/v1/books` | USER, ADMIN |
+| PUT | `/api/v1/books/{id}` | ADMIN |
+| DELETE | `/api/v1/books/{id}` | ADMIN |
 
 ### Members — `/api/v1/members`
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/members` | Create member |
-| GET | `/api/v1/members/{id}` | Get member by id |
-| GET | `/api/v1/members` | List members (paginated) |
-| PUT | `/api/v1/members/{id}` | Update member |
-| DELETE | `/api/v1/members/{id}` | Delete member |
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/v1/members` | ADMIN |
+| GET | `/api/v1/members/{id}` | USER, ADMIN |
+| GET | `/api/v1/members` | USER, ADMIN |
+| PUT | `/api/v1/members/{id}` | ADMIN |
+| DELETE | `/api/v1/members/{id}` | ADMIN |
 
 ---
 
 ## Pagination & Sorting
 
-All list endpoints accept the following query parameters:
+All list endpoints accept:
 
 | Parameter | Default | Description |
 |---|---|---|
@@ -182,14 +210,12 @@ All list endpoints accept the following query parameters:
 | `size` | `10` | Items per page (max: 100) |
 | `sort` | `id,asc` | Field and direction |
 
-**Examples:**
 ```
 GET /api/v1/books?page=0&size=5&sort=title,asc
 GET /api/v1/members?page=1&size=10&sort=membershipDate,desc
-GET /api/v1/books?sort=publicationYear,desc&sort=title,asc
 ```
 
-**Allowed sort fields per resource:**
+Allowed sort fields:
 
 | Resource | Fields |
 |---|---|
@@ -201,7 +227,7 @@ GET /api/v1/books?sort=publicationYear,desc&sort=title,asc
 
 ## Error Responses
 
-All errors follow a consistent structure:
+All errors share the same structure:
 
 ```json
 {
@@ -221,26 +247,25 @@ Validation errors include a `validationErrors` map:
   "error": "Bad Request",
   "message": "Validasiya xətası",
   "validationErrors": {
-    "isbn": "isbn formatı yanlışdır",
-    "title": "title boş ola bilməz"
+    "isbn": "isbn formatı yanlışdır"
   }
 }
 ```
 
-| Scenario | HTTP Status |
+| Scenario | Status |
 |---|---|
-| Resource not found | 404 Not Found |
-| Duplicate email / ISBN | 409 Conflict |
-| Validation failure | 400 Bad Request |
-| Invalid sort field | 400 Bad Request |
-| Malformed JSON | 400 Bad Request |
-| Unexpected error | 500 Internal Server Error |
+| Resource not found | 404 |
+| Duplicate email / ISBN | 409 |
+| Validation failure | 400 |
+| Invalid sort field | 400 |
+| Malformed JSON | 400 |
+| Unexpected error | 500 |
 
 ---
 
 ## Running Tests
 
-Tests use an H2 in-memory database — no MySQL required.
+Tests use an H2 in-memory database — **no MySQL or environment variables required**.
 
 ```bash
 # Run all tests
@@ -249,11 +274,15 @@ Tests use an H2 in-memory database — no MySQL required.
 # Run only service unit tests
 ./gradlew test --tests "org.example.librarymanagement.service.*ImplTest"
 
-# Run only integration tests
+# Run only service integration tests
 ./gradlew test --tests "org.example.librarymanagement.service.*IntegrationTest"
+
+# Run security integration tests
+./gradlew test --tests "org.example.librarymanagement.security.SecurityIntegrationTest"
 ```
 
-Test report is generated at:
+Test report:
+
 ```
 build/reports/tests/test/index.html
 ```
@@ -265,16 +294,18 @@ build/reports/tests/test/index.html
 ```
 src/
 ├── main/java/.../librarymanagement/
-│   ├── config/         # OpenAPI + Security configuration, admin data seeder
-│   ├── controller/     # REST controllers (incl. AuthController, AdminController)
+│   ├── config/         # SecurityConfig, OpenApiConfig, DataSeeder, JwtSecretValidator
+│   ├── controller/     # REST controllers
 │   ├── dto/            # Request / Response DTOs
-│   ├── entity/         # JPA entities (incl. User, Role)
+│   ├── entity/         # JPA entities (User, Role, Author, Book, Member)
 │   ├── exception/      # Custom exceptions + GlobalExceptionHandler
 │   ├── repository/     # Spring Data JPA repositories
-│   ├── security/       # JWT filter/service, UserDetailsService, 401/403 handlers
+│   ├── security/       # JwtService, JwtAuthenticationFilter, UserDetailsService, 401/403 handlers
 │   └── service/        # Service interfaces + implementations
 └── test/
-    ├── java/.../service/   # Unit tests (Mockito) + Integration tests (H2)
+    ├── java/.../
+    │   ├── security/   # SecurityIntegrationTest (MockMvc + real Spring Security)
+    │   └── service/    # Unit tests (Mockito) + Integration tests (H2)
     └── resources/
         └── application-test.yml
 ```

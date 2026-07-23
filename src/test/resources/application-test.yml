@@ -17,3 +17,11 @@ spring:
         max-page-size: 100
         default-page-size: 10
         one-indexed-parameters: false
+
+# Test-only credentials — never use these values in production
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RzLW9ubHktZG8tbm90LXVzZS1pbi1wcm9k
+  expiration: 3600000
+
+DB_USERNAME: sa
+DB_PASSWORD: ""

@@ -28,7 +28,6 @@ import java.util.Set;
 @Tag(name = "Authors", description = "Author CRUD əməliyyatları")
 public class AuthorController {
 
-    /** Author entity-sinin sıralana bilən sahələri */
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "fullName", "biography");
 
     private final AuthorService authorService;

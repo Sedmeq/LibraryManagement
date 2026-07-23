@@ -13,10 +13,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-/**
- * 401 UNAUTHORIZED — token yoxdur, yanlışdır və ya vaxtı bitib.
- * (403 FORBIDDEN-dan fərqli olaraq: burada istifadəçi ümumiyyətlə "kim olduğu" doğrulana bilmir.)
- */
+
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
