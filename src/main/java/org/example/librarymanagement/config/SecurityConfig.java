@@ -38,11 +38,11 @@ public class SecurityConfig {
             "/swagger-ui.html"
     };
 
-    /** Oxu (GET) və yazma (POST/PUT/DELETE) əməliyyatları eyni resurslar üzərində. */
     private static final String[] LIBRARY_RESOURCES = {
             "/api/v1/books/**",
             "/api/v1/authors/**",
-            "/api/v1/members/**"
+            "/api/v1/members/**",
+            "/api/v1/loans/**"
     };
 
     @Bean

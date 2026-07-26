@@ -170,6 +170,25 @@ public class GlobalExceptionHandler {
                 "Gözlənilməz xəta baş verdi. Ətraflı məlumat üçün administratorla əlaqə saxlayın.", request);
     }
 
+
+    @ExceptionHandler(BookNotAvailableException.class)
+    public ResponseEntity<ErrorResponseDto> handleBookNotAvailable(BookNotAvailableException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MaxActiveLoansExceededException.class)
+    public ResponseEntity<ErrorResponseDto> handleMaxActiveLoans(MaxActiveLoansExceededException ex,
+                                                                 HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidLoanOperationException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidLoanOperation(InvalidLoanOperationException ex,
+                                                                       HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     // -------------------------------------------------------------------------
     // Köməkçi metod
     // -------------------------------------------------------------------------
