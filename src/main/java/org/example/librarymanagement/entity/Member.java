@@ -34,7 +34,6 @@ public class Member {
     @Column(name = "membership_date", nullable = false)
     private LocalDate membershipDate;
 
-    /** Member <-> Book Many-to-Many əlaqəsinin Member tərəfi (bax: Loan.java). */
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "member")
