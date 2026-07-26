@@ -1,9 +1,7 @@
 package org.example.librarymanagement.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.librarymanagement.dto.AuthResponseDto;
-import org.example.librarymanagement.dto.LoginRequestDto;
-import org.example.librarymanagement.dto.RegisterRequestDto;
+import org.example.librarymanagement.dto.*;
 import org.example.librarymanagement.entity.Role;
 import org.example.librarymanagement.entity.User;
 import org.example.librarymanagement.exception.DuplicateResourceException;
@@ -11,10 +9,13 @@ import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.UserRepository;
 import org.example.librarymanagement.security.JwtService;
 import org.example.librarymanagement.service.AuthService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

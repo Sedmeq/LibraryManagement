@@ -42,9 +42,11 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     @Transactional(readOnly = true)
     public PageResponseDto<AuthorResponseDto> getAll(Pageable pageable) {
-        Page<AuthorResponseDto> page = authorRepository.findAll(pageable).map(this::toResponse);
+        // findAllWithBooks: @EntityGraph(books) ilə N+1 aradan qaldırılıb.
+        Page<AuthorResponseDto> page = authorRepository.findAllWithBooks(pageable).map(this::toResponse);
         return PageResponseDto.from(page);
     }
+
 
     @Override
     public AuthorResponseDto update(Long id, AuthorRequestDto dto) {
