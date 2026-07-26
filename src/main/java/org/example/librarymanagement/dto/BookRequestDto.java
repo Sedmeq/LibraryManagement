@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,4 +27,8 @@ public class BookRequestDto {
 
     @NotNull(message = "authorId boş ola bilməz")
     private Long authorId;
+
+    @NotNull(message = "totalCopies boş ola bilməz")
+    @Min(value = 1, message = "totalCopies ən azı 1 olmalıdır")
+    private Integer totalCopies;
 }

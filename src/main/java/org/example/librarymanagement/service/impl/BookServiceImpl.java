@@ -12,10 +12,13 @@ import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.AuthorRepository;
 import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.service.BookService;
+import org.example.librarymanagement.specification.BookSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,8 @@ public class BookServiceImpl implements BookService {
                 .isbn(dto.getIsbn())
                 .publicationYear(dto.getPublicationYear())
                 .author(author)
+                .totalCopies(dto.getTotalCopies())
+                .availableCopies(dto.getTotalCopies())
                 .build();
 
         return toResponse(bookRepository.save(book));
@@ -53,7 +58,26 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public PageResponseDto<BookResponseDto> getAll(Pageable pageable) {
-        Page<BookResponseDto> page = bookRepository.findAll(pageable).map(this::toResponse);
+        // findAll(Specification, Pageable) @EntityGraph(author) daşıyır -> N+1 aradan qaldırılıb.
+        Page<BookResponseDto> page = bookRepository.findAll((Specification<Book>) null, pageable)
+                .map(this::toResponse);
+        return PageResponseDto.from(page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponseDto<BookResponseDto> search(String title, String isbn, String authorName,
+                                                   Integer yearFrom, Integer yearTo, Boolean onlyAvailable,
+                                                   Pageable pageable) {
+        Specification<Book> spec = Specification
+                .where(BookSpecification.titleContains(title))
+                .and(BookSpecification.isbnEquals(isbn))
+                .and(BookSpecification.authorNameContains(authorName))
+                .and(BookSpecification.publicationYearFrom(yearFrom))
+                .and(BookSpecification.publicationYearTo(yearTo))
+                .and(BookSpecification.onlyAvailable(onlyAvailable));
+
+        Page<BookResponseDto> page = bookRepository.findAll(spec, pageable).map(this::toResponse);
         return PageResponseDto.from(page);
     }
 
@@ -61,7 +85,6 @@ public class BookServiceImpl implements BookService {
     public BookResponseDto update(Long id, BookRequestDto dto) {
         Book book = findEntity(id);
 
-        // ISBN dəyişirsə, yeni ISBN başqa kitabda istifadə olunmadığını yoxla
         if (!book.getIsbn().equals(dto.getIsbn())) {
             bookRepository.findByIsbn(dto.getIsbn()).ifPresent(existing -> {
                 throw new DuplicateResourceException("Bu ISBN artıq istifadə olunur: " + dto.getIsbn());
@@ -74,9 +97,12 @@ public class BookServiceImpl implements BookService {
             book.setAuthor(newAuthor);
         }
 
+        int borrowedCopies = book.getTotalCopies() - book.getAvailableCopies();
         book.setTitle(dto.getTitle());
         book.setIsbn(dto.getIsbn());
         book.setPublicationYear(dto.getPublicationYear());
+        book.setTotalCopies(dto.getTotalCopies());
+        book.setAvailableCopies(Math.max(0, dto.getTotalCopies() - borrowedCopies));
 
         return toResponse(bookRepository.save(book));
     }
@@ -100,6 +126,8 @@ public class BookServiceImpl implements BookService {
                 .publicationYear(book.getPublicationYear())
                 .authorId(book.getAuthor().getId())
                 .authorName(book.getAuthor().getFullName())
+                .totalCopies(book.getTotalCopies())
+                .availableCopies(book.getAvailableCopies())
                 .build();
     }
 }

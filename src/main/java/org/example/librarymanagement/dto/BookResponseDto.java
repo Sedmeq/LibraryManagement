@@ -16,4 +16,6 @@ public class BookResponseDto {
     private Integer publicationYear;
     private Long authorId;
     private String authorName;
+    private Integer totalCopies;
+    private Integer availableCopies;
 }

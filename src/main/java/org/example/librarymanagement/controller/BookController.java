@@ -89,6 +89,25 @@ public class BookController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Dinamik kitab axtarışı (bütün parametrlər opsionaldır, Specification API əsasında)")
+    public ResponseEntity<PageResponseDto<BookResponseDto>> search(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String isbn,
+            @RequestParam(required = false) String authorName,
+            @RequestParam(required = false) Integer yearFrom,
+            @RequestParam(required = false) Integer yearTo,
+            @RequestParam(required = false) Boolean available,
+            @Parameter(hidden = true)
+            @PageableDefault(size = 10)
+            @SortDefault(sort = "id", direction = Sort.Direction.ASC)
+            Pageable pageable) {
+
+        validatePageable(pageable, ALLOWED_SORT_FIELDS);
+        return ResponseEntity.ok(
+                bookService.search(title, isbn, authorName, yearFrom, yearTo, available, pageable));
+    }
+
     // -------------------------------------------------------------------------
 
     private void validatePageable(Pageable pageable, Set<String> allowedFields) {
