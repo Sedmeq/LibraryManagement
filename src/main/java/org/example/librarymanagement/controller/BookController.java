@@ -98,6 +98,7 @@ public class BookController {
             @RequestParam(required = false) Integer yearFrom,
             @RequestParam(required = false) Integer yearTo,
             @RequestParam(required = false) Boolean available,
+            @RequestParam(required = false) String categoryName,
             @Parameter(hidden = true)
             @PageableDefault(size = 10)
             @SortDefault(sort = "id", direction = Sort.Direction.ASC)
@@ -105,7 +106,7 @@ public class BookController {
 
         validatePageable(pageable, ALLOWED_SORT_FIELDS);
         return ResponseEntity.ok(
-                bookService.search(title, isbn, authorName, yearFrom, yearTo, available, pageable));
+                bookService.search(title, isbn, authorName, yearFrom, yearTo, available, categoryName, pageable));
     }
 
     // -------------------------------------------------------------------------

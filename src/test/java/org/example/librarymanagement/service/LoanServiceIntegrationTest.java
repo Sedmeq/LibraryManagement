@@ -44,8 +44,9 @@ class LoanServiceIntegrationTest {
     }
 
     private Long createBook(int totalCopies) {
+        String isbn = UUID.randomUUID().toString().replace("-", "").substring(0, 13);
         BookRequestDto dto = new BookRequestDto(
-                "Test Book", "ISBN-" + UUID.randomUUID(), 2020, authorId, totalCopies);
+                "Test Book", isbn, 2020, authorId, totalCopies);
         return bookService.create(dto).getId();
     }
 

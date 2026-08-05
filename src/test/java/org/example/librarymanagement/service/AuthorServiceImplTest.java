@@ -122,7 +122,7 @@ class AuthorServiceImplTest {
     void getAll_returnsPage() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Author> authorPage = new PageImpl<>(List.of(author), pageable, 1);
-        when(authorRepository.findAll(pageable)).thenReturn(authorPage);
+        when(authorRepository.findAllWithBooks(pageable)).thenReturn(authorPage);
 
         PageResponseDto<AuthorResponseDto> result = authorService.getAll(pageable);
 
@@ -138,7 +138,7 @@ class AuthorServiceImplTest {
     void getAll_emptyPage() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Author> emptyPage = new PageImpl<>(List.of(), pageable, 0);
-        when(authorRepository.findAll(pageable)).thenReturn(emptyPage);
+        when(authorRepository.findAllWithBooks(pageable)).thenReturn(emptyPage);
 
         PageResponseDto<AuthorResponseDto> result = authorService.getAll(pageable);
 

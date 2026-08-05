@@ -16,5 +16,6 @@ public interface BookService {
 
     PageResponseDto<BookResponseDto> search(String title, String isbn, String authorName,
                                             Integer yearFrom, Integer yearTo, Boolean onlyAvailable,
+                                            String categoryName,
                                             Pageable pageable);
 }

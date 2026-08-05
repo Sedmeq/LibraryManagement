@@ -7,6 +7,7 @@ import org.example.librarymanagement.dto.BookResponseDto;
 import org.example.librarymanagement.dto.PageResponseDto;
 import org.example.librarymanagement.entity.Author;
 import org.example.librarymanagement.entity.Book;
+import org.example.librarymanagement.entity.Category;
 import org.example.librarymanagement.exception.DuplicateResourceException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.AuthorRepository;
@@ -18,6 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -68,6 +72,7 @@ public class BookServiceImpl implements BookService {
     @Transactional(readOnly = true)
     public PageResponseDto<BookResponseDto> search(String title, String isbn, String authorName,
                                                    Integer yearFrom, Integer yearTo, Boolean onlyAvailable,
+                                                   String categoryName,
                                                    Pageable pageable) {
         Specification<Book> spec = Specification
                 .where(BookSpecification.titleContains(title))
@@ -75,7 +80,8 @@ public class BookServiceImpl implements BookService {
                 .and(BookSpecification.authorNameContains(authorName))
                 .and(BookSpecification.publicationYearFrom(yearFrom))
                 .and(BookSpecification.publicationYearTo(yearTo))
-                .and(BookSpecification.onlyAvailable(onlyAvailable));
+                .and(BookSpecification.onlyAvailable(onlyAvailable))
+                .and(BookSpecification.categoryNameEquals(categoryName));
 
         Page<BookResponseDto> page = bookRepository.findAll(spec, pageable).map(this::toResponse);
         return PageResponseDto.from(page);
@@ -119,6 +125,11 @@ public class BookServiceImpl implements BookService {
     }
 
     private BookResponseDto toResponse(Book book) {
+        Set<String> categoryNames = book.getCategories() == null ? Set.of() :
+                book.getCategories().stream()
+                        .map(Category::getName)
+                        .collect(Collectors.toSet());
+
         return BookResponseDto.builder()
                 .id(book.getId())
                 .title(book.getTitle())
@@ -128,6 +139,7 @@ public class BookServiceImpl implements BookService {
                 .authorName(book.getAuthor().getFullName())
                 .totalCopies(book.getTotalCopies())
                 .availableCopies(book.getAvailableCopies())
+                .categoryNames(categoryNames)
                 .build();
     }
 }

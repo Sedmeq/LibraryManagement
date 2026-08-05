@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,4 +20,5 @@ public class BookResponseDto {
     private String authorName;
     private Integer totalCopies;
     private Integer availableCopies;
+    private Set<String> categoryNames;
 }

@@ -23,12 +23,17 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
     Optional<Book> findByIsbn(String isbn);
 
     @Override
-    @EntityGraph(attributePaths = {"author"})
+    @EntityGraph(attributePaths = {"author", "categories"})
     Page<Book> findAll(Specification<Book> spec, Pageable pageable);
 
+    @Query("""
+        SELECT DISTINCT b FROM Book b
+        JOIN FETCH b.categories c
+        WHERE b.id = :id
+        """)
+    Optional<Book> findByIdWithCategories(@Param("id") Long id);
 
-    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN b.loans l WHERE l.id IS NULL")
-    List<Book> findBooksNeverBorrowed();
+    List<Book> findByCategories_NameIgnoreCase(String categoryName);
 
 
     @Query(value = """
@@ -41,4 +46,7 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
     List<Book> findMostBorrowedBooks(@Param("limit") int limit);
 
     Page<Book> findByAvailableCopiesGreaterThan(Integer copies, Pageable pageable);
+
+
+
 }

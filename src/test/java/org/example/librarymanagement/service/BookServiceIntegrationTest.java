@@ -45,7 +45,7 @@ class BookServiceIntegrationTest {
     @Test
     @DisplayName("create: kitab verilənlər bazasına yazılır, getById ilə oxunur")
     void createAndGetById() {
-        BookRequestDto dto = new BookRequestDto("Leyli və Məcnun", "978-9952-20-001-1", 1600, authorId);
+        BookRequestDto dto = new BookRequestDto("Leyli və Məcnun", "978-9952-20-001-1", 1600, authorId, 3);
 
         BookResponseDto created = bookService.create(dto);
 
@@ -63,7 +63,7 @@ class BookServiceIntegrationTest {
     @Test
     @DisplayName("create: mövcud olmayan authorId ilə ResourceNotFoundException atılır")
     void create_authorNotFound() {
-        BookRequestDto dto = new BookRequestDto("X", "1234567890", 2000, 9999L);
+        BookRequestDto dto = new BookRequestDto("X", "1234567890", 2000, 9999L, 1);
 
         assertThatThrownBy(() -> bookService.create(dto))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -73,10 +73,10 @@ class BookServiceIntegrationTest {
     @Test
     @DisplayName("create: mövcud ISBN ilə DuplicateResourceException atılır")
     void create_duplicateIsbn() {
-        bookService.create(new BookRequestDto("Kitab A", "9999999999", 2000, authorId));
+        bookService.create(new BookRequestDto("Kitab A", "9999999999", 2000, authorId, 2));
 
         assertThatThrownBy(() ->
-                bookService.create(new BookRequestDto("Kitab B", "9999999999", 2001, authorId))
+                bookService.create(new BookRequestDto("Kitab B", "9999999999", 2001, authorId, 1))
         ).isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("9999999999");
     }
@@ -88,8 +88,8 @@ class BookServiceIntegrationTest {
     @Test
     @DisplayName("getAll: bir neçə kitab siyahıda görünür")
     void getAll_multipleBooks() {
-        bookService.create(new BookRequestDto("Kitab 1", "1234567890", 2000, authorId));
-        bookService.create(new BookRequestDto("Kitab 2", "0987654321", 2001, authorId));
+        bookService.create(new BookRequestDto("Kitab 1", "1234567890", 2000, authorId, 1));
+        bookService.create(new BookRequestDto("Kitab 2", "0987654321", 2001, authorId, 1));
 
         PageResponseDto<BookResponseDto> page = bookService.getAll(PageRequest.of(0, 10));
 
@@ -104,11 +104,11 @@ class BookServiceIntegrationTest {
     @DisplayName("update: eyni author ilə kitab məlumatları dəyişdirilir")
     void update_sameAuthor() {
         BookResponseDto created = bookService.create(
-                new BookRequestDto("Köhnə Başlıq", "1111111111", 2000, authorId));
+                new BookRequestDto("Köhnə Başlıq", "1111111111", 2000, authorId, 4));
 
         BookResponseDto updated = bookService.update(
                 created.getId(),
-                new BookRequestDto("Yeni Başlıq", "2222222222", 2005, authorId)
+                new BookRequestDto("Yeni Başlıq", "2222222222", 2005, authorId, 4)
         );
 
         assertThat(updated.getTitle()).isEqualTo("Yeni Başlıq");
@@ -121,11 +121,11 @@ class BookServiceIntegrationTest {
     @DisplayName("update: fərqli author ilə kitabın autoru dəyişdirilir")
     void update_differentAuthor() {
         BookResponseDto created = bookService.create(
-                new BookRequestDto("Şeir", "3333333333", 1900, authorId));
+                new BookRequestDto("Şeir", "3333333333", 1900, authorId, 2));
 
         BookResponseDto updated = bookService.update(
                 created.getId(),
-                new BookRequestDto("Şeir", "3333333333", 1900, author2Id)
+                new BookRequestDto("Şeir", "3333333333", 1900, author2Id, 2)
         );
 
         assertThat(updated.getAuthorId()).isEqualTo(author2Id);
@@ -135,12 +135,12 @@ class BookServiceIntegrationTest {
     @Test
     @DisplayName("update: mövcud ISBN ilə DuplicateResourceException atılır")
     void update_duplicateIsbn() {
-        bookService.create(new BookRequestDto("Kitab A", "1111111112", 2000, authorId));
-        BookResponseDto bookB = bookService.create(new BookRequestDto("Kitab B", "2222222223", 2001, authorId));
+        bookService.create(new BookRequestDto("Kitab A", "1111111112", 2000, authorId, 1));
+        BookResponseDto bookB = bookService.create(new BookRequestDto("Kitab B", "2222222223", 2001, authorId, 1));
 
         assertThatThrownBy(() ->
                 bookService.update(bookB.getId(),
-                        new BookRequestDto("Kitab B yenilənmiş", "1111111112", 2001, authorId))
+                        new BookRequestDto("Kitab B yenilənmiş", "1111111112", 2001, authorId, 1))
         ).isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("1111111112");
     }
@@ -149,11 +149,11 @@ class BookServiceIntegrationTest {
     @DisplayName("update: öz ISBN-ni saxladıqda DuplicateResourceException atılmır")
     void update_sameIsbn_noDuplicateException() {
         BookResponseDto created = bookService.create(
-                new BookRequestDto("Kitab", "3333333334", 2000, authorId));
+                new BookRequestDto("Kitab", "3333333334", 2000, authorId, 3));
 
         assertThatNoException().isThrownBy(() ->
                 bookService.update(created.getId(),
-                        new BookRequestDto("Yenilənmiş Başlıq", "3333333334", 2005, authorId))
+                        new BookRequestDto("Yenilənmiş Başlıq", "3333333334", 2005, authorId, 3))
         );
     }
 
@@ -161,7 +161,7 @@ class BookServiceIntegrationTest {
     @DisplayName("update: mövcud olmayan kitab id ilə ResourceNotFoundException atılır")
     void update_bookNotFound() {
         assertThatThrownBy(() ->
-                bookService.update(9999L, new BookRequestDto("X", "1234567890", 2000, authorId))
+                bookService.update(9999L, new BookRequestDto("X", "1234567890", 2000, authorId, 1))
         ).isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Book");
     }
@@ -170,11 +170,11 @@ class BookServiceIntegrationTest {
     @DisplayName("update: mövcud olmayan yeni author id ilə ResourceNotFoundException atılır")
     void update_newAuthorNotFound() {
         BookResponseDto created = bookService.create(
-                new BookRequestDto("Şeir", "4444444444", 1900, authorId));
+                new BookRequestDto("Şeir", "4444444444", 1900, authorId, 2));
 
         assertThatThrownBy(() ->
                 bookService.update(created.getId(),
-                        new BookRequestDto("Şeir", "4444444444", 1900, 9999L))
+                        new BookRequestDto("Şeir", "4444444444", 1900, 9999L, 2))
         ).isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Author");
     }
@@ -187,7 +187,7 @@ class BookServiceIntegrationTest {
     @DisplayName("delete: kitab silinir, sonra getById exception atır")
     void delete_thenGetByIdThrows() {
         BookResponseDto created = bookService.create(
-                new BookRequestDto("Silinəcək", "5555555555", 2000, authorId));
+                new BookRequestDto("Silinəcək", "5555555555", 2000, authorId, 1));
         Long id = created.getId();
 
         bookService.delete(id);

@@ -21,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,9 +65,11 @@ class BookServiceImplTest {
                 .isbn("978-9952-20-001-1")
                 .publicationYear(1940)
                 .author(author)
+                .totalCopies(5)
+                .availableCopies(5)
                 .build();
 
-        requestDto = new BookRequestDto("Divani", "978-9952-20-001-1", 1940, 1L);
+        requestDto = new BookRequestDto("Divani", "978-9952-20-001-1", 1940, 1L, 5);
     }
 
     // -------------------------------------------------------------------------
@@ -106,7 +111,7 @@ class BookServiceImplTest {
     @DisplayName("create: mövcud olmayan authorId ilə ResourceNotFoundException atılır")
     void create_authorNotFound_throwsException() {
         when(authorRepository.findById(99L)).thenReturn(Optional.empty());
-        BookRequestDto dto = new BookRequestDto("Test", "1234567890", 2000, 99L);
+        BookRequestDto dto = new BookRequestDto("Test", "1234567890", 2000, 99L, 3);
 
         assertThatThrownBy(() -> bookService.create(dto))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -152,7 +157,7 @@ class BookServiceImplTest {
     void getAll_returnsPage() {
         Pageable pageable = PageRequest.of(0, 5);
         Page<Book> bookPage = new PageImpl<>(List.of(book), pageable, 1);
-        when(bookRepository.findAll(pageable)).thenReturn(bookPage);
+        when(bookRepository.findAll((Specification<Book>) isNull(), eq(pageable))).thenReturn(bookPage);
 
         PageResponseDto<BookResponseDto> result = bookService.getAll(pageable);
 
@@ -165,7 +170,8 @@ class BookServiceImplTest {
     @DisplayName("getAll: boş siyahı qaytarılır")
     void getAll_emptyPage() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(bookRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
+        when(bookRepository.findAll((Specification<Book>) isNull(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         PageResponseDto<BookResponseDto> result = bookService.getAll(pageable);
 
@@ -181,7 +187,7 @@ class BookServiceImplTest {
     @DisplayName("update: eyni author ilə kitab yenilənir")
     void update_sameAuthor_success() {
         // ISBN dəyişmir → findByIsbn çağrılmamalıdır
-        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-9952-20-001-1", 2000, 1L);
+        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-9952-20-001-1", 2000, 1L, 5);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
         when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -196,7 +202,7 @@ class BookServiceImplTest {
     @Test
     @DisplayName("update: yeni unikal ISBN ilə kitab yenilənir")
     void update_newUniqueIsbn_success() {
-        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-0-00-000001-1", 2000, 1L);
+        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-0-00-000001-1", 2000, 1L, 5);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
         when(bookRepository.findByIsbn("978-0-00-000001-1")).thenReturn(Optional.empty());
         when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -210,7 +216,7 @@ class BookServiceImplTest {
     @DisplayName("update: mövcud ISBN ilə DuplicateResourceException atılır")
     void update_duplicateIsbn_throwsException() {
         Book otherBook = Book.builder().id(99L).isbn("978-0-00-000001-1").build();
-        BookRequestDto updateDto = new BookRequestDto("X", "978-0-00-000001-1", 2000, 1L);
+        BookRequestDto updateDto = new BookRequestDto("X", "978-0-00-000001-1", 2000, 1L, 5);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
         when(bookRepository.findByIsbn("978-0-00-000001-1")).thenReturn(Optional.of(otherBook));
 
@@ -230,7 +236,7 @@ class BookServiceImplTest {
                 .biography("Satirik şair")
                 .books(new ArrayList<>())
                 .build();
-        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-0-00-000001-1", 2000, 2L);
+        BookRequestDto updateDto = new BookRequestDto("Yeni Başlıq", "978-0-00-000001-1", 2000, 2L, 5);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
         when(authorRepository.findById(2L)).thenReturn(Optional.of(newAuthor));
         when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -256,7 +262,7 @@ class BookServiceImplTest {
     @Test
     @DisplayName("update: yeni author tapılmadıqda ResourceNotFoundException atılır")
     void update_newAuthorNotFound_throwsException() {
-        BookRequestDto updateDto = new BookRequestDto("X", "1234567890", 2000, 77L);
+        BookRequestDto updateDto = new BookRequestDto("X", "1234567890", 2000, 77L, 3);
         when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
         when(authorRepository.findById(77L)).thenReturn(Optional.empty());
 
@@ -290,6 +296,6 @@ class BookServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
 
-        verify(bookRepository, never()).delete(any());
+        verify(bookRepository, never()).delete(any(Book.class));
     }
 }

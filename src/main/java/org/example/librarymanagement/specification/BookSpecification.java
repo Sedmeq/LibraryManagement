@@ -51,4 +51,14 @@ public final class BookSpecification {
         }
         return (root, query, cb) -> cb.greaterThan(root.get("availableCopies"), 0);
     }
+
+    public static Specification<Book> categoryNameEquals(String categoryName) {
+        if (categoryName == null || categoryName.isBlank()) {
+            return (root, query, cb) -> cb.conjunction();
+        }
+        return (root, query, cb) -> {
+            query.distinct(true);
+            return cb.equal(cb.lower(root.join("categories").get("name")), categoryName.toLowerCase());
+        };
+    }
 }
