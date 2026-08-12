@@ -12,6 +12,7 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("books");
+        // In-memory cache: books, authors, categories
+        return new ConcurrentMapCacheManager("books", "authors", "categories");
     }
 }

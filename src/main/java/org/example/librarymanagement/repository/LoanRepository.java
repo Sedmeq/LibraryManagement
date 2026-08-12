@@ -46,4 +46,12 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
             WHERE l.member.id = :memberId AND l.status = org.example.librarymanagement.entity.LoanStatus.ACTIVE
             """)
     List<Loan> findActiveLoansByMemberWithBook(@Param("memberId") Long memberId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+            DELETE FROM Loan l
+            WHERE l.status = org.example.librarymanagement.entity.LoanStatus.RETURNED
+              AND l.returnDate < :cutoff
+            """)
+    int deleteReturnedLoansBefore(@Param("cutoff") LocalDate cutoff);
 }

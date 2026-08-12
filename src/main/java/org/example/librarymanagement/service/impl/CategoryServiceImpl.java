@@ -10,7 +10,9 @@ import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.repository.CategoryRepository;
 import org.example.librarymanagement.service.CategoryService;
-import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +26,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final BookRepository bookRepository;
-    private final CacheManager cacheManager;
 
     @Override
+    @CacheEvict(cacheNames = "categories", allEntries = true)
     public CategoryResponseDto create(CategoryRequestDto dto) {
         categoryRepository.findByNameIgnoreCase(dto.getName()).ifPresent(c -> {
             throw new DuplicateResourceException(
@@ -38,12 +40,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(cacheNames = "categories", key = "#id")
     @Transactional(readOnly = true)
     public CategoryResponseDto getById(Long id) {
         return toResponse(findEntity(id));
     }
 
     @Override
+    @Cacheable(cacheNames = "categories", key = "'all'")
     @Transactional(readOnly = true)
     public List<CategoryResponseDto> getAll() {
         return categoryRepository.findAll().stream()
@@ -52,6 +56,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "categories", key = "#id"),
+            @CacheEvict(cacheNames = "categories", key = "'all'"),
+            @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public CategoryResponseDto update(Long id, CategoryRequestDto dto) {
         Category category = findEntity(id);
 
@@ -67,9 +76,13 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "categories", key = "#id"),
+            @CacheEvict(cacheNames = "categories", key = "'all'"),
+            @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public void delete(Long id) {
         Category category = findEntity(id);
-
         for (Book book : category.getBooks()) {
             book.getCategories().remove(category);
             bookRepository.save(book);
@@ -79,27 +92,25 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "books", key = "#bookId")
     public BookCategoryResult addCategoryToBook(Long bookId, Long categoryId) {
         Book book = bookRepository.findByIdWithCategories(bookId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Book", bookId));
         Category category = findEntity(categoryId);
-
         book.getCategories().add(category);
         bookRepository.save(book);
-
         return toBookCategoryResult(book);
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "books", key = "#bookId")
     public BookCategoryResult removeCategoryFromBook(Long bookId, Long categoryId) {
         Book book = bookRepository.findByIdWithCategories(bookId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Book", bookId));
         Category category = findEntity(categoryId);
-
         book.getCategories().remove(category);
         bookRepository.save(book);
-
         return toBookCategoryResult(book);
     }
 
@@ -133,11 +144,5 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(Category::getName)
                 .collect(Collectors.toList());
         return new BookCategoryResult(book.getId(), book.getTitle(), names);
-    }
-
-
-    private void evictBookCache(Long bookId) {
-        var cache = cacheManager.getCache("books");
-        if (cache != null) cache.evict(bookId);
     }
 }

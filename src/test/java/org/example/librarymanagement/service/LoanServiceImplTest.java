@@ -11,6 +11,7 @@ import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.repository.LoanRepository;
 import org.example.librarymanagement.repository.MemberRepository;
+import org.example.librarymanagement.service.NotificationService;
 import org.example.librarymanagement.service.impl.LoanServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +47,9 @@ class LoanServiceImplTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private LoanServiceImpl loanService;

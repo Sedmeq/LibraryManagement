@@ -3,8 +3,15 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  cache:
+    type: simple
 
 logging:
   level:
     org.example.librarymanagement: INFO
     org.hibernate.SQL: WARN
+    org.springframework.cache: WARN

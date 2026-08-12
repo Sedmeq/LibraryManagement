@@ -1,6 +1,5 @@
 package org.example.librarymanagement.service.impl;
 
-
 import lombok.RequiredArgsConstructor;
 import org.example.librarymanagement.dto.AuthorRequestDto;
 import org.example.librarymanagement.dto.AuthorResponseDto;
@@ -10,6 +9,9 @@ import org.example.librarymanagement.entity.Book;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.AuthorRepository;
 import org.example.librarymanagement.service.AuthorService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class AuthorServiceImpl implements AuthorService {
     private final AuthorRepository authorRepository;
 
     @Override
+    @CacheEvict(cacheNames = "authors", allEntries = true)
     public AuthorResponseDto create(AuthorRequestDto dto) {
         Author author = Author.builder()
                 .fullName(dto.getFullName())
@@ -34,6 +37,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Override
+    @Cacheable(cacheNames = "authors", key = "#id")
     @Transactional(readOnly = true)
     public AuthorResponseDto getById(Long id) {
         return toResponse(findEntity(id));
@@ -47,8 +51,11 @@ public class AuthorServiceImpl implements AuthorService {
         return PageResponseDto.from(page);
     }
 
-
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "authors", key = "#id"),
+            @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public AuthorResponseDto update(Long id, AuthorRequestDto dto) {
         Author author = findEntity(id);
         author.setFullName(dto.getFullName());
@@ -57,6 +64,10 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "authors", key = "#id"),
+            @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public void delete(Long id) {
         Author author = findEntity(id);
         authorRepository.delete(author);
@@ -67,8 +78,6 @@ public class AuthorServiceImpl implements AuthorService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Author", id));
     }
 
-    // Entity -> DTO mapping. books siyahısı əvəzinə yalnız title-lar veririk,
-    // beləliklə recursion riski olmur və cavab yüngül qalır.
     private AuthorResponseDto toResponse(Author author) {
         List<String> titles = author.getBooks() == null ? List.of() :
                 author.getBooks().stream().map(Book::getTitle).toList();

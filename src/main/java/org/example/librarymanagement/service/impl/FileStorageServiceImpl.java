@@ -1,15 +1,13 @@
 package org.example.librarymanagement.service.impl;
 
-
-
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.example.librarymanagement.entity.Book;
 import org.example.librarymanagement.exception.InvalidFileException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.service.FileStorageService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -72,7 +70,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new ResourceNotFoundException("Bu kitab üçün cover şəkli tapılmadı");
         try {
             Path path = Paths.get(book.getCoverImagePath());
-            Resource resource = new UrlResource(path.toUri());
+            UrlResource resource = new UrlResource(path.toUri());
             if (!resource.exists()) throw new ResourceNotFoundException("Cover fayl fiziki tapılmadı");
             return resource;
         } catch (MalformedURLException e) {

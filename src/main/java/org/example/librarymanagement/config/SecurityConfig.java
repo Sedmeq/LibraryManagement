@@ -54,6 +54,11 @@ public class SecurityConfig {
                         // Qeydiyyat/login və Swagger sənədləri hər kəsə açıqdır
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
+                        // Cover şəkli yükləmə — yalnız ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/v1/books/*/cover").hasRole("ADMIN")
+                        // Cover şəkli endirmə — USER və ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/v1/books/*/cover").hasAnyRole("USER", "ADMIN")
+
                         // Yazma (create/update/delete) əməliyyatları yalnız ADMIN üçün
                         .requestMatchers(HttpMethod.POST, LIBRARY_RESOURCES).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, LIBRARY_RESOURCES).hasRole("ADMIN")

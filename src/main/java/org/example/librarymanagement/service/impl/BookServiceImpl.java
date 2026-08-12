@@ -1,6 +1,5 @@
 package org.example.librarymanagement.service.impl;
 
-
 import lombok.RequiredArgsConstructor;
 import org.example.librarymanagement.dto.BookRequestDto;
 import org.example.librarymanagement.dto.BookResponseDto;
@@ -14,6 +13,9 @@ import org.example.librarymanagement.repository.AuthorRepository;
 import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.service.BookService;
 import org.example.librarymanagement.specification.BookSpecification;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -22,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 import java.util.stream.Collectors;
-
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +55,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    @org.springframework.cache.annotation.Cacheable(cacheNames = "books", key = "#id")
+    @Cacheable(cacheNames = "books", key = "#id")
     @Transactional(readOnly = true)
     public BookResponseDto getById(Long id) {
         return toResponse(findEntity(id));
@@ -88,8 +89,13 @@ public class BookServiceImpl implements BookService {
         return PageResponseDto.from(page);
     }
 
+    /**
+     * Updates the book and immediately refreshes the cache entry with the new data.
+     * Using @CachePut instead of @CacheEvict means the next getById call is served
+     * from cache without an extra DB round-trip.
+     */
     @Override
-    @org.springframework.cache.annotation.CacheEvict(cacheNames = "books", key = "#id")
+    @CachePut(cacheNames = "books", key = "#id")
     public BookResponseDto update(Long id, BookRequestDto dto) {
         Book book = findEntity(id);
 
@@ -116,7 +122,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    @org.springframework.cache.annotation.CacheEvict(cacheNames = "books", key = "#id")
+    @CacheEvict(cacheNames = "books", key = "#id")
     public void delete(Long id) {
         Book book = findEntity(id);
         bookRepository.delete(book);
