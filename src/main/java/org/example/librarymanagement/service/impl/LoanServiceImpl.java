@@ -16,6 +16,7 @@ import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.repository.LoanRepository;
 import org.example.librarymanagement.repository.MemberRepository;
 import org.example.librarymanagement.service.LoanService;
+import org.example.librarymanagement.service.NotificationService;
 import org.example.librarymanagement.specification.LoanSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
+    private final NotificationService notificationService;
 
     @Override
     public LoanResponseDto borrowBook(LoanRequestDto dto) {
@@ -73,7 +75,7 @@ public class LoanServiceImpl implements LoanService {
                     "Üzv (id=" + member.getId() + ") maksimum " + MAX_ACTIVE_LOANS_PER_MEMBER +
                             " aktiv icarə limitini aşır. Əməliyyat ləğv edildi.");
         }
-
+        notificationService.sendLoanConfirmationEmail(member.getEmail(), book.getTitle());
         return toResponse(loan);
     }
 
