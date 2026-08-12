@@ -23,6 +23,19 @@ spring:
         default-page-size: 10
         one-indexed-parameters: false
 
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
+
+
+app:
+  file:
+    upload-dir: ${FILE_UPLOAD_DIR:uploads/covers}
+    max-size-bytes: 5242880
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB

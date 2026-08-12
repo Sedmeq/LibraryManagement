@@ -30,6 +30,11 @@ public class Book {
     @Column(name = "publication_year")
     private Integer publicationYear;
 
+    //new
+
+    @Column(name = "cover_image_path")
+    private String coverImagePath;
+
     @Column(name = "total_copies", nullable = false)
     @Builder.Default
     private Integer totalCopies = 1;

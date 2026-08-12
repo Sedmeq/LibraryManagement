@@ -189,6 +189,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    //new
+    @ExceptionHandler(InvalidFileException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidFile(InvalidFileException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     // -------------------------------------------------------------------------
     // Köməkçi metod
     // -------------------------------------------------------------------------
