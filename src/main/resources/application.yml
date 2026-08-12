@@ -1,41 +1,29 @@
 spring:
   application:
     name: LibraryManagement
-
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/testdb}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
   data:
     web:
       pageable:
         max-page-size: 100
         default-page-size: 10
         one-indexed-parameters: false
-
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
 
-
 app:
   file:
     upload-dir: ${FILE_UPLOAD_DIR:uploads/covers}
     max-size-bytes: 5242880
-
-spring:
-  servlet:
-    multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
