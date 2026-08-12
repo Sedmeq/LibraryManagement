@@ -19,8 +19,9 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Library Management API")
-                        .description("Book, Author, Member üzərində layered architecture ilə CRUD REST API")
-                        .version("v1.0.0")
+                        .description("Book, Author, Member, Category üzərində CRUD, caching, file upload/download, " +
+                                "scheduled və async əməliyyatlarla layered architecture REST API")
+                        .version("v1.1.0")
                         .contact(new Contact().name("Library Management Team")))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME_NAME, new SecurityScheme()
