@@ -33,7 +33,6 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    /** BCrypt ilə hash-lənmiş şifrə. Heç vaxt açıq mətn saxlanılmır. */
     @Column(nullable = false)
     private String password;
 

@@ -54,6 +54,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "books", key = "#id")
     @Transactional(readOnly = true)
     public BookResponseDto getById(Long id) {
         return toResponse(findEntity(id));

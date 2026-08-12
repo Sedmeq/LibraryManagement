@@ -39,11 +39,9 @@ public class Loan {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
-    /** Kitab hələ qaytarılmayıbsa null olur. */
     @Column(name = "return_date")
     private LocalDate returnDate;
 
-    /** DB-də yalnız ACTIVE/RETURNED saxlanılır; OVERDUE runtime-da (dueDate ilə müqayisə) hesablanır. */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private LoanStatus status;
