@@ -89,6 +89,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @org.springframework.cache.annotation.CacheEvict(cacheNames = "books", key = "#id")
     public BookResponseDto update(Long id, BookRequestDto dto) {
         Book book = findEntity(id);
 
@@ -115,6 +116,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @org.springframework.cache.annotation.CacheEvict(cacheNames = "books", key = "#id")
     public void delete(Long id) {
         Book book = findEntity(id);
         bookRepository.delete(book);

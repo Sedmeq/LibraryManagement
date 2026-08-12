@@ -10,6 +10,7 @@ import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.BookRepository;
 import org.example.librarymanagement.repository.CategoryRepository;
 import org.example.librarymanagement.service.CategoryService;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final BookRepository bookRepository;
+    private final CacheManager cacheManager;
 
     @Override
     public CategoryResponseDto create(CategoryRequestDto dto) {
@@ -53,7 +55,6 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponseDto update(Long id, CategoryRequestDto dto) {
         Category category = findEntity(id);
 
-        // Eyni adda başqa category varsa conflict
         categoryRepository.findByNameIgnoreCase(dto.getName()).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
                 throw new DuplicateResourceException(
@@ -68,8 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void delete(Long id) {
         Category category = findEntity(id);
-        // Many-to-Many join table entries are managed by Book entity owner side;
-        // removing from all books first to keep DB consistent
+
         for (Book book : category.getBooks()) {
             book.getCategories().remove(category);
             bookRepository.save(book);
@@ -80,7 +80,6 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public BookCategoryResult addCategoryToBook(Long bookId, Long categoryId) {
-        // findByIdWithCategories uses JOIN FETCH — N+1 aradan qaldırılıb
         Book book = bookRepository.findByIdWithCategories(bookId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Book", bookId));
         Category category = findEntity(categoryId);
@@ -134,5 +133,11 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(Category::getName)
                 .collect(Collectors.toList());
         return new BookCategoryResult(book.getId(), book.getTitle(), names);
+    }
+
+
+    private void evictBookCache(Long bookId) {
+        var cache = cacheManager.getCache("books");
+        if (cache != null) cache.evict(bookId);
     }
 }
