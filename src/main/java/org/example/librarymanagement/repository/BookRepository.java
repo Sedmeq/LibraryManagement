@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-
 @Repository
 public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
 
@@ -22,19 +21,35 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
 
     Optional<Book> findByIsbn(String isbn);
 
+    /**
+     * Paginated query — fetches only `author` (ManyToOne, safe with LIMIT).
+     * `categories` (collection) is intentionally excluded to prevent Hibernate from
+     * applying pagination in-memory (HHH90003004 warning). Categories are loaded
+     * separately via {@link #findWithCategoriesByIds} when needed.
+     */
     @Override
-    @EntityGraph(attributePaths = {"author", "categories"})
+    @EntityGraph(attributePaths = {"author"})
     Page<Book> findAll(Specification<Book> spec, Pageable pageable);
+
+    /**
+     * Loads categories for a known set of book ids in a single query.
+     * Used after paginated fetch to avoid the collection-fetch + pagination issue.
+     */
+    @Query("""
+        SELECT DISTINCT b FROM Book b
+        LEFT JOIN FETCH b.categories
+        WHERE b.id IN :ids
+        """)
+    List<Book> findWithCategoriesByIds(@Param("ids") List<Long> ids);
 
     @Query("""
         SELECT DISTINCT b FROM Book b
-        JOIN FETCH b.categories c
+        LEFT JOIN FETCH b.categories c
         WHERE b.id = :id
         """)
     Optional<Book> findByIdWithCategories(@Param("id") Long id);
 
     List<Book> findByCategories_NameIgnoreCase(String categoryName);
-
 
     @Query(value = """
             SELECT b.* FROM books b
@@ -46,7 +61,4 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
     List<Book> findMostBorrowedBooks(@Param("limit") int limit);
 
     Page<Book> findByAvailableCopiesGreaterThan(Integer copies, Pageable pageable);
-
-
-
 }

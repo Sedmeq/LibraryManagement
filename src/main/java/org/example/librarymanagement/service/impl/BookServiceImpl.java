@@ -23,7 +23,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,16 +62,17 @@ public class BookServiceImpl implements BookService {
     @Cacheable(cacheNames = "books", key = "#id")
     @Transactional(readOnly = true)
     public BookResponseDto getById(Long id) {
-        return toResponse(findEntity(id));
+        // findByIdWithCategories uses JOIN FETCH — safe for single entity, no pagination involved
+        Book book = bookRepository.findByIdWithCategories(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Book", id));
+        return toResponse(book);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponseDto<BookResponseDto> getAll(Pageable pageable) {
-        // findAll(Specification, Pageable) @EntityGraph(author) daşıyır -> N+1 aradan qaldırılıb.
-        Page<BookResponseDto> page = bookRepository.findAll((Specification<Book>) null, pageable)
-                .map(this::toResponse);
-        return PageResponseDto.from(page);
+        Page<Book> page = bookRepository.findAll((Specification<Book>) null, pageable);
+        return toPageResponseWithCategories(page);
     }
 
     @Override
@@ -91,8 +95,8 @@ public class BookServiceImpl implements BookService {
                 .and(BookSpecification.onlyAvailable(onlyAvailable))
                 .and(BookSpecification.categoryNameEquals(categoryName));
 
-        Page<BookResponseDto> page = bookRepository.findAll(spec, pageable).map(this::toResponse);
-        return PageResponseDto.from(page);
+        Page<Book> page = bookRepository.findAll(spec, pageable);
+        return toPageResponseWithCategories(page);
     }
 
     /**
@@ -132,6 +136,43 @@ public class BookServiceImpl implements BookService {
     public void delete(Long id) {
         Book book = findEntity(id);
         bookRepository.delete(book);
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Two-query strategy to avoid Hibernate in-memory pagination warning (HHH90003004).
+     *
+     * Problem: fetching a collection (categories) with JOIN in a paginated query causes
+     * Hibernate to load ALL rows into memory and paginate in Java, not in SQL.
+     *
+     * Solution:
+     *   Query 1 — paginated fetch with only @EntityGraph("author") — DB-level LIMIT works correctly.
+     *   Query 2 — load categories for exactly those book ids via a separate LEFT JOIN FETCH.
+     *   Then merge the categories back onto the already-fetched books.
+     *
+     * Result: correct DB-level pagination + no N+1 on categories.
+     */
+    private PageResponseDto<BookResponseDto> toPageResponseWithCategories(Page<Book> page) {
+        if (page.isEmpty()) {
+            return PageResponseDto.from(page.map(this::toResponse));
+        }
+
+        List<Long> ids = page.getContent().stream().map(Book::getId).toList();
+
+        // Single query fetches categories for all ids at once
+        Map<Long, Set<Category>> categoryMap = bookRepository.findWithCategoriesByIds(ids)
+                .stream()
+                .collect(Collectors.toMap(Book::getId, Book::getCategories));
+
+        return PageResponseDto.from(page.map(book -> {
+            Set<Category> cats = categoryMap.getOrDefault(book.getId(), Set.of());
+            book.getCategories().clear();
+            book.getCategories().addAll(cats);
+            return toResponse(book);
+        }));
     }
 
     private Book findEntity(Long id) {

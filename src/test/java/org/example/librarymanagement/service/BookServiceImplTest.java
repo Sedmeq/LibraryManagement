@@ -128,19 +128,19 @@ class BookServiceImplTest {
     @Test
     @DisplayName("getById: mövcud id ilə kitab qaytarılır")
     void getById_found() {
-        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIdWithCategories(10L)).thenReturn(Optional.of(book));
 
         BookResponseDto result = bookService.getById(10L);
 
         assertThat(result.getId()).isEqualTo(10L);
         assertThat(result.getTitle()).isEqualTo("Divani");
-        verify(bookRepository).findById(10L);
+        verify(bookRepository).findByIdWithCategories(10L);
     }
 
     @Test
     @DisplayName("getById: mövcud olmayan id ilə ResourceNotFoundException atılır")
     void getById_notFound_throwsException() {
-        when(bookRepository.findById(99L)).thenReturn(Optional.empty());
+        when(bookRepository.findByIdWithCategories(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> bookService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -158,6 +158,7 @@ class BookServiceImplTest {
         Pageable pageable = PageRequest.of(0, 5);
         Page<Book> bookPage = new PageImpl<>(List.of(book), pageable, 1);
         when(bookRepository.findAll((Specification<Book>) isNull(), eq(pageable))).thenReturn(bookPage);
+        when(bookRepository.findWithCategoriesByIds(List.of(10L))).thenReturn(List.of(book));
 
         PageResponseDto<BookResponseDto> result = bookService.getAll(pageable);
 
@@ -177,6 +178,8 @@ class BookServiceImplTest {
 
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isEqualTo(0);
+        // Empty page → findWithCategoriesByIds must NOT be called
+        verify(bookRepository, never()).findWithCategoriesByIds(any());
     }
 
     // -------------------------------------------------------------------------

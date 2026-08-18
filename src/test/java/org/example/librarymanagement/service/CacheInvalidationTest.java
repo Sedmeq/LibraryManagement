@@ -67,12 +67,12 @@ class CacheInvalidationTest {
     @Test
     @DisplayName("@Cacheable — ikinci getById DB-yə getmir, cache-dən gəlir")
     void getById_secondCall_servedFromCache() {
-        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIdWithCategories(1L)).thenReturn(Optional.of(book));
 
         bookService.getById(1L); // cache miss → DB
         bookService.getById(1L); // cache hit → no DB call
 
-        verify(bookRepository, times(1)).findById(1L);
+        verify(bookRepository, times(1)).findByIdWithCategories(1L);
     }
 
     @Test
@@ -103,19 +103,21 @@ class CacheInvalidationTest {
     @Test
     @DisplayName("@CacheEvict — delete sonrası cache silinir, növbəti getById DB-yə gedir")
     void delete_evictsCache_nextGetByIdHitsDb() {
+        when(bookRepository.findByIdWithCategories(1L)).thenReturn(Optional.of(book));
         when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
         doNothing().when(bookRepository).delete(book);
 
-        bookService.getById(1L); // populate cache — findById call #1
-        bookService.delete(1L);  // @CacheEvict fires — findById call #2 (inside delete → findEntity)
+        bookService.getById(1L); // populate cache — findByIdWithCategories call #1
+        bookService.delete(1L);  // @CacheEvict fires — findById call (inside findEntity)
 
         // After eviction the cache entry must be gone
         Cache booksCache = cacheManager.getCache("books");
         assertThat(booksCache).isNotNull();
         assertThat(booksCache.get(1L)).isNull();
 
-        // Next call must go back to the repository — findById call #3
+        // Next call must go back to the repository — findByIdWithCategories call #2
         bookService.getById(1L);
-        verify(bookRepository, times(3)).findById(1L);
+        verify(bookRepository, times(2)).findByIdWithCategories(1L);
+        verify(bookRepository, times(1)).findById(1L);
     }
 }
