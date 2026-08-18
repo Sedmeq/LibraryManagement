@@ -8,6 +8,7 @@ import org.example.librarymanagement.entity.Author;
 import org.example.librarymanagement.entity.Book;
 import org.example.librarymanagement.entity.Category;
 import org.example.librarymanagement.exception.DuplicateResourceException;
+import org.example.librarymanagement.exception.InvalidSearchException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.AuthorRepository;
 import org.example.librarymanagement.repository.BookRepository;
@@ -76,6 +77,11 @@ public class BookServiceImpl implements BookService {
                                                    Integer yearFrom, Integer yearTo, Boolean onlyAvailable,
                                                    String categoryName,
                                                    Pageable pageable) {
+        if (yearFrom != null && yearTo != null && yearFrom > yearTo) {
+            throw new InvalidSearchException(
+                    "yearFrom (" + yearFrom + ") yearTo-dan (" + yearTo + ") böyük ola bilməz.");
+        }
+
         Specification<Book> spec = Specification
                 .where(BookSpecification.titleContains(title))
                 .and(BookSpecification.isbnEquals(isbn))

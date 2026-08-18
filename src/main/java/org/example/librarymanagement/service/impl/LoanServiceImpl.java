@@ -10,6 +10,7 @@ import org.example.librarymanagement.entity.LoanStatus;
 import org.example.librarymanagement.entity.Member;
 import org.example.librarymanagement.exception.BookNotAvailableException;
 import org.example.librarymanagement.exception.InvalidLoanOperationException;
+import org.example.librarymanagement.exception.InvalidSearchException;
 import org.example.librarymanagement.exception.MaxActiveLoansExceededException;
 import org.example.librarymanagement.exception.ResourceNotFoundException;
 import org.example.librarymanagement.repository.BookRepository;
@@ -129,6 +130,11 @@ public class LoanServiceImpl implements LoanService {
     public PageResponseDto<LoanResponseDto> search(Long memberId, Long bookId, String status,
                                                    LocalDate loanDateFrom, LocalDate loanDateTo,
                                                    Pageable pageable) {
+        if (loanDateFrom != null && loanDateTo != null && loanDateFrom.isAfter(loanDateTo)) {
+            throw new InvalidSearchException(
+                    "loanDateFrom (" + loanDateFrom + ") loanDateTo-dan (" + loanDateTo + ") sonra ola bilməz.");
+        }
+
         LoanStatus statusEnum = null;
         if (status != null && !status.isBlank()) {
             try {
