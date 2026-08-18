@@ -1,6 +1,5 @@
 package org.example.librarymanagement.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,14 +10,18 @@ import java.util.Set;
 
 @Entity
 @Table(name = "books")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"loans", "categories"})
 public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(name = "title", nullable = false, length = 200)
@@ -29,8 +32,6 @@ public class Book {
 
     @Column(name = "publication_year")
     private Integer publicationYear;
-
-    //new
 
     @Column(name = "cover_image_path")
     private String coverImagePath;
@@ -47,12 +48,9 @@ public class Book {
     @JoinColumn(name = "author_id", nullable = false)
     private Author author;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "book")
     @Builder.Default
     private List<Loan> loans = new ArrayList<>();
-
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -60,8 +58,6 @@ public class Book {
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     @Builder.Default
     private Set<Category> categories = new HashSet<>();
 }

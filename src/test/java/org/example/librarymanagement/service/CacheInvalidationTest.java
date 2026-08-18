@@ -22,15 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Integration-level cache tests using real Spring context + in-memory ConcurrentMapCache.
- * BookRepository and AuthorRepository are replaced with Mockito stubs so no DB is needed.
- *
- * Verifies:
- * 1. @Cacheable — second getById hit is served from cache (repository called only once).
- * 2. @CachePut  — after update() the cache entry is refreshed with the new data immediately.
- * 3. @CacheEvict — after delete() the cache entry is removed (next getById hits the repository).
- */
+
 @SpringBootTest
 @ActiveProfiles("test")
 class CacheInvalidationTest {
